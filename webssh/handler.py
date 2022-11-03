@@ -17,6 +17,8 @@ from webssh.utils import (
     to_int, to_ip_address, UnicodeType, is_ip_hostname, is_same_primary_domain,
     is_valid_encoding
 )
+
+from webssh.plugins import RequestArgs, Plugins
 from webssh.worker import Worker, recycle_worker, clients
 
 try:
@@ -41,7 +43,6 @@ class InvalidValueError(Exception):
 
 
 class SSHClient(paramiko.SSHClient):
-
     def handler(self, title, instructions, prompt_list):
         answers = []
         for prompt_, _ in prompt_list:
@@ -316,7 +317,7 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
 
     executor = ThreadPoolExecutor(max_workers=cpu_count()*5)
 
-    def initialize(self, loop, policy, host_keys_settings):
+    def initialize(self, loop, policy, host_keys_settings, plugins: Plugins):
         super(IndexHandler, self).initialize(loop)
         self.policy = policy
         self.host_keys_settings = host_keys_settings
@@ -324,6 +325,7 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
         self.debug = self.settings.get('debug', False)
         self.font = self.settings.get('font', '')
         self.result = dict(id=None, status=None, encoding=None)
+        self.plugins = plugins
 
     def write_error(self, status_code, **kwargs):
         if swallow_http_errors and self.request.method == 'POST':
@@ -452,7 +454,8 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
         logging.info('Connecting to {}:{}'.format(*dst_addr))
 
         try:
-            ssh.connect(*args, timeout=options.timeout)
+            sock = self.sock_from_plugins(args)
+            ssh.connect(*args, timeout=options.timeout, sock=sock)
         except socket.error:
             raise ValueError('Unable to connect to {}:{}'.format(*dst_addr))
         except paramiko.BadAuthenticationType:
@@ -489,6 +492,20 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
 
     def get(self):
         self.render('index.html', debug=self.debug, font=self.font)
+    
+    def sock_from_plugins(self, args):
+        if not self.plugins.socket_builder:
+            return None
+        plugin_args = RequestArgs(
+            hostname=args[0],
+            port=args[1],
+            username=args[2],
+            password=args[3],
+            private_key=args[4],
+            request=self
+        )
+
+        return self.plugins.socket_builder.connect(plugin_args)
 
     @tornado.gen.coroutine
     def post(self):
