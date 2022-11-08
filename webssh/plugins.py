@@ -1,6 +1,10 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Union
+from typing import (
+    Callable,
+    Optional,
+    ParamSpec,
+)
 import socket
 import tornado.web
 
@@ -15,8 +19,8 @@ class RequestArgs:
     port: int
     username: str
     request: tornado.web.RequestHandler
-    password: Union[str, None] = None
-    private_key: Union[str, None] = None
+    password: Optional[str] = None
+    private_key: Optional[str] = None
 
 class SocketBuilder(ABC):
     @abstractmethod
@@ -28,11 +32,15 @@ class SocketBuilder(ABC):
         Returns a socket or socket-like object.
         """
         pass
+P = ParamSpec('P')
 
 @dataclass
 class Plugins:
-    socket_builder: Union[SocketBuilder, None] = None
+    socket_builder: Optional[SocketBuilder] = None
     # A set handler mappings to extend the webssh server with extra
     # behaviour (e.g. add metrics, healthchecks, etc). These use the same format
     # as normal tornado request matchers (e.g. tuples)
     handlers: list = field(default_factory=lambda: [])
+    # Constructs a tornado application given a list of handlers, and settings as
+    # kwargs.
+    app_factory: Optional[Callable[..., tornado.web.Application]] = None
