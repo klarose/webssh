@@ -16,12 +16,14 @@ def make_handlers(loop, options, plugins: Plugins):
     host_keys_settings = get_host_keys_settings(options)
     policy = get_policy_setting(options, host_keys_settings)
 
-    handlers = [
+    handlers = plugins.handlers.copy()
+    handlers.extend([
         (r'/', IndexHandler, dict(loop=loop, policy=policy,
                                   host_keys_settings=host_keys_settings,
                                   plugins=plugins)),
         (r'/ws', WsockHandler, dict(loop=loop))
-    ]
+    ])
+
     return handlers
 
 

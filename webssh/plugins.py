@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Union
 import socket
 import tornado.web
@@ -32,3 +32,7 @@ class SocketBuilder(ABC):
 @dataclass
 class Plugins:
     socket_builder: Union[SocketBuilder, None] = None
+    # A set handler mappings to extend the webssh server with extra
+    # behaviour (e.g. add metrics, healthchecks, etc). These use the same format
+    # as normal tornado request matchers (e.g. tuples)
+    handlers: list = field(default_factory=lambda: [])
