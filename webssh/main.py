@@ -27,8 +27,11 @@ def make_handlers(loop, options, plugins: Plugins):
     return handlers
 
 
-def make_app(handlers, settings):
+def make_app(handlers, settings, plugins: Plugins):
     settings.update(default_handler_class=NotFoundHandler)
+    if plugins.app_factory:
+        return plugins.app_factory(handlers, **settings)
+
     return tornado.web.Application(handlers, **settings)
 
 
@@ -46,7 +49,11 @@ def app_listen(app, port, address, server_settings):
 def run_server(options, plugins: Plugins):
     check_encoding_setting(options.encoding)
     loop = tornado.ioloop.IOLoop.current()
-    app = make_app(make_handlers(loop, options, plugins), get_app_settings(options))
+    app = make_app(
+        make_handlers(loop, options, plugins),
+        get_app_settings(options),
+        plugins
+    )
     ssl_ctx = get_ssl_context(options)
     server_settings = get_server_settings(options)
     app_listen(app, options.port, options.address, server_settings)
