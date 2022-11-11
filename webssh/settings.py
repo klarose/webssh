@@ -42,6 +42,11 @@ define('origin', default='same', help='''Origin policy,
 '<domains>': custom domains policy, matches any domain in the <domains> list
 separated by comma;
 '*': wildcard policy, matches any domain, allowed in debug mode only.''')
+define('allow-cross-origin', type=bool, default=False,
+help='''Allow cross origin requests. Setting this to true will allow a wildcard origin
+and disable csrf protection. Use this when webssh is being used as an API for multiple
+hosts. Be careful to use other steps to prevent cross site scripting attacks.
+''')
 define('wpintvl', type=float, default=0, help='Websocket ping interval')
 define('timeout', type=float, default=3, help='SSH connection timeout')
 define('delay', type=float, default=3, help='The delay to call recycle_worker')
@@ -79,7 +84,7 @@ def get_app_settings(options):
         static_path=os.path.join(base_dir, 'webssh', 'static'),
         websocket_ping_interval=options.wpintvl,
         debug=options.debug,
-        xsrf_cookies=options.xsrf,
+        xsrf_cookies=get_xsrf_setting(options),
         font=Font(
             get_font_filename(options.font,
                               os.path.join(base_dir, *font_dirs)),
@@ -154,7 +159,15 @@ def get_trusted_downstream(tdstream):
     return result
 
 
+def get_xsrf_setting(options):
+    if options.allow_cross_origin:
+        return False
+    return options.xsrf
+
 def get_origin_setting(options):
+    if options.allow_cross_origin:
+        return "*"
+
     if options.origin == '*':
         if not options.debug:
             raise ValueError(
