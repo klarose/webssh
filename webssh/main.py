@@ -11,6 +11,7 @@ from webssh.settings import (
     get_ssl_context, get_server_settings, check_encoding_setting
 )
 
+_servers = []
 
 def make_handlers(loop, options, plugins: Plugins):
     host_keys_settings = get_host_keys_settings(options)
@@ -36,7 +37,7 @@ def make_app(handlers, settings, plugins: Plugins):
 
 
 def app_listen(app, port, address, server_settings):
-    app.listen(port, address, **server_settings)
+    server = app.listen(port, address, **server_settings)
     if not server_settings.get('ssl_options'):
         server_type = 'http'
     else:
@@ -45,6 +46,8 @@ def app_listen(app, port, address, server_settings):
     logging.info(
         'Listening on {}:{} ({})'.format(address, port, server_type)
     )
+
+    return server
 
 def run_server(options, plugins: Plugins):
     check_encoding_setting(options.encoding)
@@ -56,11 +59,19 @@ def run_server(options, plugins: Plugins):
     )
     ssl_ctx = get_ssl_context(options)
     server_settings = get_server_settings(options)
-    app_listen(app, options.port, options.address, server_settings)
+    server = app_listen(app, options.port, options.address, server_settings)
+    _servers.append(server)
     if ssl_ctx:
         server_settings.update(ssl_options=ssl_ctx)
-        app_listen(app, options.sslport, options.ssladdress, server_settings)
+        server = app_listen(app, options.sslport, options.ssladdress, server_settings)
+        _servers.append(server)
     loop.start()
+
+def get_servers():
+    """
+    Returns the tornado http servers started by run_server.
+    """
+    return _servers
 
 def main():
     options.parse_command_line()
