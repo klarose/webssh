@@ -12,7 +12,7 @@ from webssh.policy import load_host_keys
 from webssh.settings import (
     get_host_keys_settings, get_policy_setting, base_dir, get_font_filename,
     get_ssl_context, get_trusted_downstream, get_origin_setting, print_version,
-    check_encoding_setting
+    check_encoding_setting, get_xsrf_setting
 )
 from webssh.utils import UnicodeType
 from webssh._version import __version__
@@ -142,6 +142,7 @@ class TestSettings(unittest.TestCase):
 
     def test_get_origin_setting(self):
         options.debug = False
+        options.allow_cross_origin = False
         options.origin = '*'
         with self.assertRaises(ValueError):
             get_origin_setting(options)
@@ -167,6 +168,23 @@ class TestSettings(unittest.TestCase):
         options.origin = 'www.example.com:80,  www.example.org:443'
         result = {'http://www.example.com', 'https://www.example.org'}
         self.assertEqual(get_origin_setting(options), result)
+
+        options.allow_cross_origin = True
+        self.assertEqual(get_origin_setting(options), "*")
+
+    def test_get_xsrf_setting(self):
+        options.xsrf = True
+        options.allow_cross_origin = False
+
+        self.assertEqual(get_xsrf_setting(options), True)
+
+        options.xsrf = False
+        self.assertEqual(get_xsrf_setting(options), False)
+
+        options.xsrf = True
+        options.allow_cross_origin = True
+
+        self.assertEqual(get_xsrf_setting(options), False)
 
     def test_get_font_setting(self):
         font_dir = os.path.join(base_dir, 'tests', 'data', 'fonts')
