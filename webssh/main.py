@@ -2,6 +2,8 @@ import logging
 import tornado.web
 import tornado.ioloop
 
+from typing import Optional
+
 from tornado.options import options
 from webssh import handler
 from webssh.handler import IndexHandler, WsockHandler, NotFoundHandler
@@ -13,7 +15,10 @@ from webssh.settings import (
 
 _servers = []
 
-def make_handlers(loop, options, plugins: Plugins):
+def make_handlers(loop, options, plugins: Optional[Plugins]=None):
+    if not plugins:
+        plugins = Plugins()
+
     host_keys_settings = get_host_keys_settings(options)
     policy = get_policy_setting(options, host_keys_settings)
 
@@ -28,7 +33,10 @@ def make_handlers(loop, options, plugins: Plugins):
     return handlers
 
 
-def make_app(handlers, settings, plugins: Plugins):
+def make_app(handlers, settings, plugins: Optional[Plugins]=None):
+    if not plugins:
+        plugins = Plugins()
+
     settings.update(default_handler_class=NotFoundHandler)
     if plugins.app_factory:
         return plugins.app_factory(handlers, **settings)
