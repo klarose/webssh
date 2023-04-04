@@ -1,4 +1,6 @@
+import binascii
 import io
+import os
 import json
 import logging
 import socket
@@ -37,6 +39,7 @@ DEFAULT_PORT = 22
 swallow_http_errors = True
 redirecting = None
 
+webssh_debug_logger = logging.getLogger("webssh.debug_logger")
 
 class InvalidValueError(Exception):
     pass
@@ -440,6 +443,8 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
                 except socket.timeout:
                     pass
                 else:
+                    if self.debug_encoding():
+                        self.dump_data(data, data_type="encoding")
                     logging.debug('{!r} => {!r}'.format(command, data))
                     result = self.parse_encoding(data)
                     if result:
@@ -447,6 +452,23 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
 
         logging.warning('Could not detect the default encoding.')
         return 'utf-8'
+
+    def debug_encoding(self):
+        return os.getenv("DEBUG_ENCODING", "") != ""
+
+    def dump_data(self, data, data_type=None):
+        extra = {}
+        extra["hostname"] = self.get_hostname()
+        extra["data"] = binascii.hexlify(
+            data=data,
+            bytes_per_sep=16,
+            sep=","
+        ).decode()
+        if data_type is not None:
+            extra["data_type"] = data_type
+
+        webssh_debug_logger.error("dump", extra={"props": extra})
+
 
     def ssh_connect(self, args):
         ssh = self.ssh_client
