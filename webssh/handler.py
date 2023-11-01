@@ -329,6 +329,7 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
         self.font = self.settings.get('font', '')
         self.result = dict(id=None, status=None, encoding=None)
         self.plugins = plugins
+        self.overrides = {}
 
     def write_error(self, status_code, **kwargs):
         if swallow_http_errors and self.request.method == 'POST':
@@ -531,9 +532,13 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
 
     @tornado.gen.coroutine
     def post(self):
+        self._populate_overrides(self.plugins.conn_start_updater)
+
         if self.debug and self.get_argument('error', u''):
             # for testing purpose only
             raise ValueError('Uncaught exception')
+        if self.plugins.conn_start_updater:
+            self.plugins.conn_start_updater(self)
 
         ip, port = self.get_client_addr()
         workers = clients.get(ip, {})
@@ -563,6 +568,25 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
             self.result.update(id=worker.id, encoding=worker.encoding)
 
         self.write(self.result)
+
+    def get_argument(self, name, default=None, strip=True):
+        value = self.overrides.get(name)
+        if value:
+            return value
+
+        return super().get_argument(name, default, strip)
+
+    def get_value(self, name):
+        value = self.overrides.get(name)
+        if value:
+            return value
+        return super().get_value(name)
+
+    def _populate_overrides(self, updater):
+        if not updater:
+            return
+
+        self.overrides = updater(self)
 
 
 class WsockHandler(MixinHandler, tornado.websocket.WebSocketHandler):
