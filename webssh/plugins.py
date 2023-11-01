@@ -44,3 +44,6 @@ class Plugins:
     # Constructs a tornado application given a list of handlers, and settings as
     # kwargs.
     app_factory: Optional[Callable[..., tornado.web.Application]] = None
+    # Modifies the connection start request in place. This can allow populating default
+    # values, etc.
+    conn_start_updater: Optional[Callable[[tornado.web.RequestHandler], dict]] = None
