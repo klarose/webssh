@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import (
+    Awaitable,
     Callable,
     Optional,
     ParamSpec,
@@ -45,5 +46,6 @@ class Plugins:
     # kwargs.
     app_factory: Optional[Callable[..., tornado.web.Application]] = None
     # Modifies the connection start request in place. This can allow populating default
-    # values, etc.
-    conn_start_updater: Optional[Callable[[tornado.web.RequestHandler], dict]] = None
+    # values, etc. It returns a set of overrides in a dict that will modify the values we
+    # use in the request
+    conn_start_updater: Optional[Callable[[tornado.web.RequestHandler], Awaitable[dict]]] = None

@@ -532,13 +532,11 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
 
     @tornado.gen.coroutine
     def post(self):
-        self._populate_overrides(self.plugins.conn_start_updater)
+        yield self._populate_overrides(self.plugins.conn_start_updater)
 
         if self.debug and self.get_argument('error', u''):
             # for testing purpose only
             raise ValueError('Uncaught exception')
-        if self.plugins.conn_start_updater:
-            self.plugins.conn_start_updater(self)
 
         ip, port = self.get_client_addr()
         workers = clients.get(ip, {})
@@ -582,11 +580,12 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
             return value
         return super().get_value(name)
 
+    @tornado.gen.coroutine
     def _populate_overrides(self, updater):
         if not updater:
             return
 
-        self.overrides = updater(self)
+        self.overrides = yield updater(self)
 
 
 class WsockHandler(MixinHandler, tornado.websocket.WebSocketHandler):
