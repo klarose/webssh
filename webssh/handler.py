@@ -552,20 +552,22 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
 
         future = self.executor.submit(self.ssh_connect, args)
 
-        try:
-            worker = yield future
-        except (ValueError, paramiko.SSHException) as exc:
-            logging.error(traceback.format_exc())
-            self.result.update(status=str(exc))
-        else:
-            if not workers:
-                clients[ip] = workers
-            worker.src_addr = (ip, port)
-            workers[worker.id] = worker
-            self.loop.call_later(options.delay, recycle_worker, worker)
-            self.result.update(id=worker.id, encoding=worker.encoding)
+        worker = None
+        with self.plugins.conn_error_handler(self):
+            try:
+                worker = yield future
+            except (ValueError, paramiko.SSHException) as exc:
+                logging.error(traceback.format_exc())
+                self.result.update(status=str(exc))
+            else:
+                if not workers:
+                    clients[ip] = workers
+                worker.src_addr = (ip, port)
+                workers[worker.id] = worker
+                self.loop.call_later(options.delay, recycle_worker, worker)
+                self.result.update(id=worker.id, encoding=worker.encoding)
 
-        self.write(self.result)
+            self.write(self.result)
 
     def get_argument(self, name, default=None, strip=True):
         value = self.overrides.get(name)

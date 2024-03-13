@@ -3,9 +3,11 @@ from dataclasses import dataclass, field
 from typing import (
     Awaitable,
     Callable,
+    ContextManager,
     Optional,
     ParamSpec,
 )
+import contextlib
 import socket
 import tornado.web
 
@@ -35,6 +37,10 @@ class SocketBuilder(ABC):
         pass
 P = ParamSpec('P')
 
+@contextlib.contextmanager
+def default_error_handler(handler: tornado.web.RequestHandler):
+    yield
+
 @dataclass
 class Plugins:
     socket_builder: Optional[SocketBuilder] = None
@@ -49,3 +55,9 @@ class Plugins:
     # values, etc. It returns a set of overrides in a dict that will modify the values we
     # use in the request
     conn_start_updater: Optional[Callable[[tornado.web.RequestHandler], Awaitable[dict]]] = None
+
+    # Can choose to handle an exc
+    conn_error_handler: Callable[
+        [tornado.web.RequestHandler],
+        contextlib.AbstractContextManager
+    ] = default_error_handler
