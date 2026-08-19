@@ -55,7 +55,7 @@ class Plugins:
     # values, etc. It returns a set of overrides in a dict that will modify the values we
     # use in the request
     conn_start_updater: Optional[Callable[[tornado.web.RequestHandler], Awaitable[dict]]] = None
-    ssh_established_callback: Optional[Callable[[tornado.web.RequestHandler, paramiko.SSHClient]]] = None
+    ssh_established_callback: Optional[Callable[[tornado.web.RequestHandler, paramiko.SSHClient], None]] = None
 
     # Can choose to handle an exc
     conn_error_handler: Callable[
