@@ -488,6 +488,9 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
         except paramiko.BadHostKeyException:
             raise ValueError('Bad host key.')
 
+        if self.plugins.ssh_established_callback is not None:
+            self.plugins.ssh_established_callback(self, self.ssh_client)
+
         term = self.get_argument('term', u'') or u'xterm'
         chan = ssh.invoke_shell(term=term)
         chan.setblocking(0)

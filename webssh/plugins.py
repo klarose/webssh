@@ -3,13 +3,13 @@ from dataclasses import dataclass, field
 from typing import (
     Awaitable,
     Callable,
-    ContextManager,
     Optional,
     ParamSpec,
 )
 import contextlib
 import socket
 import tornado.web
+import paramiko
 
 @dataclass
 class RequestArgs:
@@ -55,6 +55,7 @@ class Plugins:
     # values, etc. It returns a set of overrides in a dict that will modify the values we
     # use in the request
     conn_start_updater: Optional[Callable[[tornado.web.RequestHandler], Awaitable[dict]]] = None
+    ssh_established_callback: Optional[Callable[[tornado.web.RequestHandler, paramiko.SSHClient]]] = None
 
     # Can choose to handle an exc
     conn_error_handler: Callable[
